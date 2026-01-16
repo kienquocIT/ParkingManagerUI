@@ -3,50 +3,66 @@ import {
     Line,
     XAxis,
     YAxis,
-    CartesianGrid,
     Tooltip,
+    CartesianGrid,
     Legend,
-    ResponsiveContainer
+    ResponsiveContainer,
 } from "recharts";
-import {Box, Typography} from "@mui/material";
 
-export default function ParkingComparisonLineChart({ data }) {
+export default function ParkingComparisonLineChart({
+                                                       rawData,
+                                                       predictData,
+                                                   }: {
+    rawData: RawPoint[];
+    predictData: PredictPoint[];
+}) {
     return (
-        <Box className="shadow-lg bg-white rounded p-5">
-            <Typography variant="h6" fontWeight="bold" className="mb-3">
-                Actual vs Prediction
-            </Typography>
+        <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
 
-            <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
+            {/* ===== RAW CHART ===== */}
+            <div style={{ width: "100%", height: 350 }}>
+                <ResponsiveContainer>
+                    <LineChart data={rawData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="time" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
 
-                    {/* Actual */}
-                    <Line
-                        type="monotone"
-                        dataKey="actual"
-                        stroke="#1976d2"
-                        strokeWidth={3}
-                        dot={{ r: 4 }}
-                        name="Actual"
-                    />
+                        <Line
+                            type="monotone"
+                            dataKey="value"
+                            name="Actual"
+                            stroke="#1976d2"
+                            strokeWidth={2}
+                            dot={{ r: 3 }}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
 
-                    {/* Prediction */}
-                    <Line
-                        type="monotone"
-                        dataKey="predicted"
-                        stroke="#ff9800"
-                        strokeWidth={3}
-                        strokeDasharray="5 5"
-                        dot={{ r: 4 }}
-                        name="Prediction"
-                    />
-                </LineChart>
-            </ResponsiveContainer>
-        </Box>
+            {/* ===== PREDICT CHART ===== */}
+            <div style={{ width: "100%", height: 350 }}>
+                <ResponsiveContainer>
+                    <LineChart data={predictData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="time" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+
+                        <Line
+                            type="monotone"
+                            dataKey="value"
+                            name="Predicted"
+                            stroke="#d32f2f"
+                            strokeWidth={2}
+                            dot={{ r: 3 }}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+
+        </div>
     );
 }

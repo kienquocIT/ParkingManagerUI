@@ -152,7 +152,9 @@ export default function OverviewPage() {
         prediction_free: 0,
         mae: 0
     })
-    const [parkingSynthetic, setParkingSynthetic] = useState([])
+    const [rawChartData, setRawChartData] = useState([]);
+    const [predictChartData, setPredictChartData] = useState([]);
+
 
     function toMinuteLabel(dateInput: string | Date) {
         const d = new Date(dateInput);
@@ -166,25 +168,6 @@ export default function OverviewPage() {
         );
     }
 
-
-    function mergeActualAndPrediction(rawData, predictionData) {
-        const length = Math.min(rawData.length, predictionData.length);
-
-        const result = [];
-
-        for (let i = 0; i < length; i++) {
-            const raw = rawData[i];
-            const predict = predictionData[i];
-
-            result.push({
-                time: toMinuteLabel(raw.timestamp), // ⬅ LẤY GIỜ RAW
-                actual: raw.car_count,
-                predicted: predict.prediction
-            });
-        }
-
-        return result;
-    }
 
 
     useEffect(() => {
@@ -245,16 +228,18 @@ export default function OverviewPage() {
             try {
                 const synthetic = await getParkingSynthetic();
 
-                const mergedData = mergeActualAndPrediction(
-                    synthetic.raw_data,
-                    synthetic.prediction_data
-                );
+                const rawData = synthetic.raw_data.map(item => ({
+                    time: toMinuteLabel(item.timestamp),
+                    value: item.car_count,
+                }));
 
-                console.log(synthetic.raw_data);
-                console.log(synthetic.prediction_data);
-                console.log(mergedData);
+                const predictData = synthetic.prediction_data.map(item => ({
+                    time: toMinuteLabel(item.prediction_for),
+                    value: item.prediction,
+                }));
 
-                setParkingSynthetic(mergedData);
+                setRawChartData(rawData);
+                setPredictChartData(predictData);
 
             } catch (err) {
                 console.error(err);
@@ -263,6 +248,7 @@ export default function OverviewPage() {
 
         fetchParkingSynthetic();
     }, []);
+
 
     return (
         <Box>
@@ -381,6 +367,16 @@ export default function OverviewPage() {
                     </Grid>
             </Grid>
 
+            <br />
+            <Box className={"bg-white p-2 shadow rounded-lg"}>
+                <h4 className={"mb-4 fw-bold"}>Overview Charts</h4>
+                <ParkingComparisonLineChart
+                    rawData={rawChartData}
+                    predictData={predictChartData}
+                />
+            </Box>
+            <br/>
+
             <br/>
 
             {/*Parking lot map*/}
@@ -476,10 +472,6 @@ export default function OverviewPage() {
                         </Box>
                     </Grid>
                 </Grid>
-
-                <br />
-                <ParkingComparisonLineChart data={parkingSynthetic} />
-                <br/>
 
                 <Box className={'bg-gradient-blue-dark py-4 px-5 rounded-pill'}>
                     <Typography variant={"h6"} fontWeight={"bold"} className={"mb-2"}>

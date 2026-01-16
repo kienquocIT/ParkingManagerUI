@@ -11,7 +11,9 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {getAllParkingSlots} from "../services/ParkingSlotService"
 import {getParkingPrediction, getParkingPredictionMAE} from "../services/ParkingPredictionService.tsx";
+import ParkingComparisonLineChart from "../components/ParkingComparisonLineChart.tsx";
 import {useEffect, useState} from "react";
+import {getParkingSynthetic} from "../services/ParkingSynthetic.tsx";
 
 // Mock Data
 const parking_slot = [
@@ -126,6 +128,15 @@ const parking_slot = [
     { "code": "100", "isEmpty": false }
 ]
 
+const comparisonChartData = [
+    { time: "08:00", actual: 60, predicted: 65 },
+    { time: "09:00", actual: 70, predicted: 75 },
+    { time: "10:00", actual: 78, predicted: 80 },
+    { time: "11:00", actual: 85, predicted: 88 },
+    { time: "12:00", actual: 90, predicted: 92 },
+];
+
+
 export default function OverviewPage() {
     const [parkingData, setParkingData] = useState({
         car_count: 0,
@@ -141,6 +152,40 @@ export default function OverviewPage() {
         prediction_free: 0,
         mae: 0
     })
+    const [parkingSynthetic, setParkingSynthetic] = useState([])
+
+    function toMinuteLabel(dateInput: string | Date) {
+        const d = new Date(dateInput);
+        d.setSeconds(0);
+        d.setMilliseconds(0);
+
+        return (
+            String(d.getHours()).padStart(2, "0") +
+            ":" +
+            String(d.getMinutes()).padStart(2, "0")
+        );
+    }
+
+
+    function mergeActualAndPrediction(rawData, predictionData) {
+        const length = Math.min(rawData.length, predictionData.length);
+
+        const result = [];
+
+        for (let i = 0; i < length; i++) {
+            const raw = rawData[i];
+            const predict = predictionData[i];
+
+            result.push({
+                time: toMinuteLabel(raw.timestamp), // ⬅ LẤY GIỜ RAW
+                actual: raw.car_count,
+                predicted: predict.prediction
+            });
+        }
+
+        return result;
+    }
+
 
     useEffect(() => {
         const fetchParkingData = async () => {
@@ -159,13 +204,12 @@ export default function OverviewPage() {
                 console.log(updatedSlots);
 
                 setParkingData({
-                    car_count: data?.car_count ?? 0,
+                    car_count: 100 - data.free_spots.length,
                     free_spots: updatedSlots,
                     timestamp: data?.timestamp
                         ? new Date(data.timestamp).toLocaleString("vi-VN")
                         : "dd/mm/yyyy",
                 });
-
             } catch (err) {
                 console.error(err);
             }
@@ -179,7 +223,6 @@ export default function OverviewPage() {
             try {
                 const data = await getParkingPrediction();
                 const res_ma = await getParkingPredictionMAE();
-                console.log(data);
                 const format_data = {
                     prediction: data?.prediction,
                     prediction_for: data?.prediction_for
@@ -195,6 +238,30 @@ export default function OverviewPage() {
         };
 
         fetchParkingDataPrediction();
+    }, []);
+
+    useEffect(() => {
+        const fetchParkingSynthetic = async () => {
+            try {
+                const synthetic = await getParkingSynthetic();
+
+                const mergedData = mergeActualAndPrediction(
+                    synthetic.raw_data,
+                    synthetic.prediction_data
+                );
+
+                console.log(synthetic.raw_data);
+                console.log(synthetic.prediction_data);
+                console.log(mergedData);
+
+                setParkingSynthetic(mergedData);
+
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        fetchParkingSynthetic();
     }, []);
 
     return (
@@ -280,7 +347,7 @@ export default function OverviewPage() {
                                     </Typography>
                                     <br/>
                                     <Typography variant="h3" color="textDark" fontWeight={'bold'}>
-                                        {parkingData.free_spots.length}
+                                        {100 - parkingData.car_count}
                                     </Typography>
                                 </CardContent>
                             </CardActionArea>
@@ -409,6 +476,10 @@ export default function OverviewPage() {
                         </Box>
                     </Grid>
                 </Grid>
+
+                <br />
+                <ParkingComparisonLineChart data={parkingSynthetic} />
+                <br/>
 
                 <Box className={'bg-gradient-blue-dark py-4 px-5 rounded-pill'}>
                     <Typography variant={"h6"} fontWeight={"bold"} className={"mb-2"}>
